@@ -14,8 +14,7 @@
 header.top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-bottom:14px;margin-bottom:16px;border-bottom:3px solid transparent;border-image:repeating-linear-gradient(135deg,#000 0 10px,var(--paper)10px 20px)3}
 .brand{display:flex;align-items:center;gap:10px}.aperture-logo{width:34px;height:34px;flex:none}.brand h1{font-size:26px;margin:0;color:var(--paper);text-transform:uppercase}.brand span{display:block;font-size:11px;color:var(--text-dim);letter-spacing:1.5px;text-transform:uppercase;margin-top:-4px}
 nav.tabs{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}nav.tabs button{background:var(--surface);color:var(--text-dim);border:1px solid var(--surface-2);padding:9px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;transition:all .15s}nav.tabs button:hover{color:var(--text)}nav.tabs button.active{background:var(--gold);color:#1a1305;border-color:var(--gold)}
-.panel{display:none}.panel.active{display:block;animation:fade .2s ease}@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-h2.section-title{font-size:22px;text-transform:uppercase;color:var(--paper);margin:0 0 14px}
+.panel{display:none}.panel.active{display:block;animation:fade .2s ease}@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}h2.section-title{font-size:22px;text-transform:uppercase;color:var(--paper);margin:0 0 14px}
 .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
 .stat-card{background:var(--surface);border:1px solid var(--surface-2);border-radius:var(--radius);padding:14px;cursor:pointer;transition:all .2s}.stat-card:hover{border-color:var(--gold);transform:translateY(-2px)}.stat-card .label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);margin-bottom:4px}.stat-card .value{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;color:var(--paper)}.stat-card .value.red{color:var(--red)}.stat-card .value.green{color:var(--green)}.stat-card .value.amber{color:var(--amber)}.stat-card .value.blue{color:var(--blue)}.stat-card .sub{font-size:10px;color:var(--text-dim);margin-top:4px}
 .month-selector{display:flex;align-items:center;gap:12px;margin-bottom:16px;background:var(--surface);padding:10px 16px;border-radius:var(--radius);border:1px solid var(--surface-2);flex-wrap:wrap}.month-selector label{font-size:13px;color:var(--text-dim);font-weight:600}.month-selector select{background:var(--surface-2);color:var(--text);border:1px solid #3a3a45;border-radius:6px;padding:7px 12px;font-family:inherit;font-size:13px;cursor:pointer}.month-selector select:focus{outline:1px solid var(--gold);border-color:var(--gold)}.month-selector .month-stats{margin-left:auto;font-size:13px;color:var(--text-dim)}.month-selector .month-stats strong{color:var(--gold)}
@@ -43,11 +42,9 @@ table.pp-table{width:100%;border-collapse:collapse;background:var(--surface);bor
 <body>
 <div id="app">
 <header class="top">
-<div class="brand"><svg class="aperture-logo" viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="none" stroke="#c9a227" stroke-width="2.5"/><path d="M20 6 L27 20 L20 34 L13 20 Z" fill="#c9a227" opacity="0.85"/></svg>
-<div><h1 class="display">Mejia Foto & Video</h1><span>Planificador de Eventos · Cotizaciones y Producción</span></div></div>
+<div class="brand"><svg class="aperture-logo" viewBox="0 0 40 40"><circle cx="20" cy="20" r="17" fill="none" stroke="#c9a227" stroke-width="2.5"/><path d="M20 6 L27 20 L20 34 L13 20 Z" fill="#c9a227" opacity="0.85"/></svg><div><h1 class="display">Mejia Foto & Video</h1><span>Planificador de Eventos · Cotizaciones y Producción</span></div></div>
 <nav class="tabs"><button data-tab="dashboard" class="active">Dashboard</button><button data-tab="calendario">Calendario</button><button data-tab="cotizacion">Nueva cotización</button><button data-tab="postproduccion">Post-producción &amp; pagos</button></nav>
 </header>
-
 <section class="panel active" id="panel-dashboard">
 <div class="month-selector"><label for="dashboard-month">📅 Ver mes:</label><select id="dashboard-month"></select><div class="month-stats" id="month-stats"><span id="month-events-count">0 eventos</span> · <strong id="month-revenue">$0</strong></div></div>
 <div class="stat-row" id="stat-row-month"></div>
@@ -58,14 +55,12 @@ table.pp-table{width:100%;border-collapse:collapse;background:var(--surface);bor
 <h2 class="section-title" style="font-size:18px;margin-top:20px;">📋 Eventos del mes seleccionado</h2>
 <div class="upcoming-list" id="upcoming-list"></div>
 </section>
-
 <section class="panel" id="panel-calendario">
 <h2 class="section-title">Calendario de eventos</h2>
 <div class="cal-header"><button id="cal-prev">‹</button><h3 id="cal-title" class="mono"></h3><button id="cal-next">›</button></div>
 <div class="cal-grid"><div class="cal-weekdays"><div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div></div><div class="cal-days" id="cal-days"></div></div>
 <p style="font-size:11px;color:var(--text-dim);margin-top:10px;"><span class="aperture pendiente" style="display:inline-block;vertical-align:middle;margin-right:4px;"></span> Pendiente &nbsp;&nbsp;<span class="aperture edicion" style="display:inline-block;vertical-align:middle;margin-right:4px;"></span> En edición &nbsp;&nbsp;<span class="aperture entregado" style="display:inline-block;vertical-align:middle;margin-right:4px;"></span> Entregado</p>
 </section>
-
 <section class="panel" id="panel-cotizacion">
 <h2 class="section-title">Crear cotización / evento</h2>
 <div class="quote-layout">
@@ -108,12 +103,10 @@ table.pp-table{width:100%;border-collapse:collapse;background:var(--surface);bor
 </div>
 </div>
 </section>
-
 <section class="panel" id="panel-postproduccion">
 <h2 class="section-title">Post-producción y pagos</h2>
 <div style="overflow-x:auto;"><table class="pp-table"><thead><tr><th>Fecha</th><th>Cliente</th><th>Paquete</th><th>Total</th><th>Pagado</th><th>Saldo</th><th>Producción</th><th></th></tr></thead><tbody id="pp-tbody"></tbody></table></div>
 </section>
-
 <div class="footer-info"><strong>📸 Mejia Foto & Video</strong> · (916) 541-3044 · <a href="https://mejiafotoyvideo.com" target="_blank">mejiafotoyvideo.com</a><br><span style="font-size:11px;">© 2026 · Todos los derechos reservados</span></div>
 </div>
 
@@ -124,27 +117,17 @@ table.pp-table{width:100%;border-collapse:collapse;background:var(--surface);bor
 
 <script>
 // =============================================
-// 🔑 CONFIGURACIÓN DE SUPABASE - SOLO CAMBIA ESTO
+// 🔑 CONFIGURACIÓN DE SUPABASE - SOLO UNA VEZ
 // =============================================
 const SUPABASE_URL = 'https://gtipnlzmwdzatbvkojlh.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0aXBubHptd2R6YXRidmtvamxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4NDY1MjIsImV4cCI6MjEwMDQyMjUyMn0.hCixXa1mT1oF7_iXghgVuxI_hFanO7rRec0cKsLYJ2E';  // ← PON TU ANON KEY COMPLETA
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0aXBubHptd2R6YXRidmtvamxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4NDY1MjIsImV4cCI6MjEwMDQyMjUyMn0.hCixXa1mT1oF7_iXghgVuxI_hFanO7rRec0cKsLYJ2E';  // ← SOLO CAMBIA ESTO
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // =============================================
 
 // ===== PAQUETES =====
 const PACKAGES = {
-  basico: {
-    name: 'Básico',
-    price: 2900,
-    taxable: 500,
-    items: ['150 impresiones 4x6','2 impresiones 11x14','2 impresiones 8x10','2 memorias USB con la película','Álbum para las 4x6']
-  },
-  grande: {
-    name: 'Grande',
-    price: 3200,
-    taxable: 700,
-    items: ['200 impresiones 4x6','2 impresiones 11x14','2 impresiones 8x10','2 memorias USB con la película','Álbum para las 4x6','Ampliación 20x30 (sección previa)']
-  }
+  basico: { name: 'Básico', price: 2900, taxable: 500, items: ['150 impresiones 4x6','2 impresiones 11x14','2 impresiones 8x10','2 memorias USB con la película','Álbum para las 4x6'] },
+  grande: { name: 'Grande', price: 3200, taxable: 700, items: ['200 impresiones 4x6','2 impresiones 11x14','2 impresiones 8x10','2 memorias USB con la película','Álbum para las 4x6','Ampliación 20x30 (sección previa)'] }
 };
 
 const TAX_RATE = 0.0875;
@@ -190,7 +173,7 @@ function balanceOf(ev){
   return total - paidOf(ev); 
 }
 
-// ===== SUPABASE FUNCTIONS =====
+// ===== FUNCIONES DE SUPABASE =====
 async function loadEventsFromSupabase() {
   try {
     isLoading = true;
@@ -645,7 +628,7 @@ function updatePreview() {
   }
 }
 
-// Event listeners para preview
+// Event listeners
 ['q-cliente','q-tipo','q-fecha','q-precio','q-descuento','q-deposito','q-casa','q-iglesia','q-venue','q-hora-casa','q-hora-iglesia','q-hora-venue'].forEach(id => {
   const el = document.getElementById(id);
   if (el) {
@@ -897,7 +880,6 @@ async function init() {
   }
 }
 
-// Iniciar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
   init();
 });
