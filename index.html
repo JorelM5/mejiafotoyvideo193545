@@ -4,10 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mejia Foto & Video — Planificador de Eventos</title>
+<!-- ✅ SDK DE SUPABASE (IMPORTANTE) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  /* ===== TODOS LOS ESTILOS AQUÍ ===== */
+  /* ===== TODO EL CSS DEL CÓDIGO ANTERIOR VA AQUÍ ===== */
+  /* (Copia todo el CSS de tu código que ya funciona) */
   :root{
     --bg:#141419;
     --surface:#1d1d25;
@@ -234,11 +237,32 @@
     font-weight:600;
   }
 
+  .sync-status{
+    position:fixed;bottom:10px;right:10px;
+    background:var(--surface);padding:8px 14px;
+    border-radius:20px;font-size:11px;
+    border:1px solid var(--gold);color:var(--text-dim);
+    z-index:999;
+    display:flex;align-items:center;gap:8px;
+  }
+  .sync-status .dot{
+    width:8px;height:8px;border-radius:50%;display:inline-block;
+  }
+  .sync-status .dot.online{background:var(--green);}
+  .sync-status .dot.offline{background:var(--red);}
+  .sync-status .dot.syncing{background:var(--amber);animation:pulse 1s infinite;}
+
+  @keyframes pulse{
+    0%,100%{opacity:1;}
+    50%{opacity:0.3;}
+  }
+
   @media print{
     body *{visibility:hidden;}
     #print-area, #print-area *{visibility:visible;}
     #print-area{position:absolute;top:0;left:0;width:100%;}
     .footer-info{display:none;}
+    .sync-status{display:none;}
   }
 </style>
 </head>
@@ -437,7 +461,19 @@
 </div>
 
 <script>
-// ===== PAQUETES Y CONSTANTES =====
+// =============================================
+// 🔑 CONFIGURACIÓN DE SUPABASE
+// =============================================
+// 👇 CAMBIA ESTOS VALORES CON LOS TUYOS 👇
+const SUPABASE_URL = 'https://jwunrcjwoouxhtjoddya.supabase.co';  // ← TU URL DE SUPABASE
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3dW5yY2p3b291eGh0am9kZHlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4MjU3OTIsImV4cCI6MjEwMDQwMTc5Mn0.pWoHKteIT9uemytDtMD5VQNtX4zm18Uj935Df7TUjbA';  // ← TU ANON KEY DE SUPABASE
+
+// Inicializar Supabase
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// =============================================
+// PAQUETES Y CONSTANTES
+// =============================================
 const PACKAGES = {
   basico: {
     name: 'Básico',
@@ -461,6 +497,7 @@ let selectedPkg = 'basico';
 let calYear, calMonth;
 let activeEventId = null;
 let dashboardMonth = null;
+let isLoading = false;
 
 const fmt = n => '$' + Number(n||0).toLocaleString('es-MX',{maximumFractionDigits:0});
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
@@ -495,18 +532,102 @@ function balanceOf(ev){
   return total - paidOf(ev); 
 }
 
-async function loadEvents(){
+// ===== FUNCIONES DE SUPABASE =====
+async function loadEventsFromSupabase() {
   try {
-    const saved = localStorage.getItem('events-data');
-    EVENTS = saved ? JSON.parse(saved) : [];
-  } catch(e) { EVENTS = []; }
+    isLoading = true;
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .order('fecha', { ascending: true });
+    
+    if (error) throw error;
+    
+    EVENTS = data.map(ev => ({
+      ...ev,
+      payments: ev.payments || []
+    }));
+    
+    console.log('✅ Eventos cargados desde Supabase:', EVENTS.length);
+    updateSyncStatus(true);
+    return true;
+  } catch(e) {
+    console.error('❌ Error cargando desde Supabase:', e);
+    // Fallback a localStorage
+    try {
+      const saved = localStorage.getItem('events-data');
+      EVENTS = saved ? JSON.parse(saved) : [];
+      console.log('⚠️ Usando localStorage como respaldo');
+    } catch(localError) {
+      EVENTS = [];
+    }
+    updateSyncStatus(false);
+    return false;
+  } finally {
+    isLoading = false;
+  }
 }
 
-async function saveEvents(){
-  try { 
+async function saveEventsToSupabase() {
+  try {
+    // Eliminar todos los eventos existentes
+    const { error: deleteError } = await supabase
+      .from('events')
+      .delete()
+      .neq('id', 'nonexistent');
+    
+    if (deleteError) throw deleteError;
+    
+    // Insertar todos los eventos
+    if (EVENTS.length > 0) {
+      const eventsToInsert = EVENTS.map(ev => ({
+        ...ev,
+        payments: ev.payments || []
+      }));
+      
+      const { error: insertError } = await supabase
+        .from('events')
+        .insert(eventsToInsert);
+      
+      if (insertError) throw insertError;
+    }
+    
+    // Guardar también en localStorage como respaldo
     localStorage.setItem('events-data', JSON.stringify(EVENTS));
-  } catch(e){ console.error('Error guardando:', e); }
+    
+    console.log('✅ Eventos guardados en Supabase:', EVENTS.length);
+    updateSyncStatus(true);
+    return true;
+  } catch(e) {
+    console.error('❌ Error guardando en Supabase:', e);
+    // Fallback a localStorage
+    try {
+      localStorage.setItem('events-data', JSON.stringify(EVENTS));
+      console.log('⚠️ Guardado en localStorage como respaldo');
+    } catch(localError) {
+      console.error('❌ Error guardando en localStorage:', localError);
+    }
+    updateSyncStatus(false);
+    return false;
+  }
 }
+
+function updateSyncStatus(online) {
+  const statusEl = document.getElementById('sync-status');
+  if (statusEl) {
+    const dot = statusEl.querySelector('.dot');
+    if (online) {
+      dot.className = 'dot online';
+      statusEl.innerHTML = '<span class="dot online"></span> ☁️ Sincronizado';
+    } else {
+      dot.className = 'dot offline';
+      statusEl.innerHTML = '<span class="dot offline"></span> 📴 Sin conexión';
+    }
+  }
+}
+
+// ===== FUNCIONES DE LA APLICACIÓN =====
+// (Todas las funciones de renderizado van aquí)
 
 function getEventsByYear(year) {
   return EVENTS.filter(ev => {
@@ -910,8 +1031,8 @@ document.getElementById('btn-guardar-cotizacion').addEventListener('click', asyn
   };
   
   EVENTS.push(ev);
-  await saveEvents();
-  alert('✅ Cotización guardada exitosamente.');
+  await saveEventsToSupabase();
+  alert('✅ Cotización guardada en la nube exitosamente.');
   
   ['q-cliente','q-telefono','q-fecha','q-casa','q-iglesia','q-venue','q-notas','q-hora-casa','q-hora-iglesia','q-hora-venue'].forEach(id=>{
     document.getElementById(id).value = '';
@@ -961,7 +1082,7 @@ async function setStatus(id, status){
   const ev = EVENTS.find(e=>e.id===id);
   if(ev){ 
     ev.status = status; 
-    await saveEvents(); 
+    await saveEventsToSupabase(); 
     renderDashboard(); 
     renderCalendar(); 
     renderPostproduccion(); 
@@ -1000,7 +1121,7 @@ function openDetail(id){
   statusSel.innerHTML = Object.keys(STATUS_LABEL).map(k=>`<option value="${k}" ${ev.status===k?'selected':''}>${STATUS_LABEL[k]}</option>`).join('');
   statusSel.onchange = async ()=>{ 
     ev.status = statusSel.value; 
-    await saveEvents(); 
+    await saveEventsToSupabase(); 
     renderDashboard(); 
     renderCalendar(); 
     renderPostproduccion(); 
@@ -1028,7 +1149,7 @@ function openDetail(id){
       amount, 
       nota: document.getElementById('dt-pay-note').value.trim()
     });
-    await saveEvents();
+    await saveEventsToSupabase();
     openDetail(id);
     renderDashboard(); 
     renderPostproduccion(); 
@@ -1038,7 +1159,7 @@ function openDetail(id){
   document.getElementById('dt-delete').onclick = async ()=>{
     if(confirm('⚠️ ¿Eliminar este evento?')){
       EVENTS = EVENTS.filter(e=>e.id!==id);
-      await saveEvents();
+      await saveEventsToSupabase();
       closeModal('modal-detail'); 
       closeModal('modal-day');
       renderDashboard(); 
@@ -1058,12 +1179,28 @@ document.querySelectorAll('.modal-overlay').forEach(ov=>{
   });
 });
 
+// ===== Sincronización automática =====
+function startAutoSync() {
+  setInterval(async () => {
+    if (!isLoading) {
+      console.log('🔄 Sincronizando automáticamente...');
+      await loadEventsFromSupabase();
+      renderDashboard();
+      renderCalendar();
+      renderPostproduccion();
+    }
+  }, 30000);
+}
+
 // ===== INICIALIZACIÓN =====
 async function init(){
   const now = new Date();
   calYear = now.getFullYear(); 
   calMonth = now.getMonth();
-  await loadEvents();
+  
+  // Cargar datos desde Supabase
+  await loadEventsFromSupabase();
+  
   renderPkgOptions();
   document.getElementById('q-precio').value = PACKAGES[selectedPkg].price;
   updatePreview();
@@ -1071,7 +1208,18 @@ async function init(){
   renderDashboard();
   renderCalendar();
   renderPostproduccion();
-  console.log('✅ Sistema listo -', EVENTS.length, 'eventos cargados');
+  
+  // Crear indicador de sincronización
+  const statusDiv = document.createElement('div');
+  statusDiv.id = 'sync-status';
+  statusDiv.className = 'sync-status';
+  statusDiv.innerHTML = '<span class="dot online"></span> ☁️ Sincronizado';
+  document.body.appendChild(statusDiv);
+  
+  // Iniciar sincronización automática
+  startAutoSync();
+  
+  console.log('✅ Sistema listo -', EVENTS.length, 'eventos cargados desde la nube');
 }
 
 init();
