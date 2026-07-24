@@ -117,11 +117,12 @@ table.pp-table{width:100%;border-collapse:collapse;background:var(--surface);bor
 
 <script>
 // =============================================
-// 🔑 CONFIGURACIÓN DE SUPABASE
+// 🔑 CONFIGURACIÓN DE SUPABASE - SOLO UNA VEZ
 // =============================================
 const SUPABASE_URL = 'https://gtipnlzmwdzatbvkojlh.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0aXBubHptd2R6YXRidmtvamxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4NDY1MjIsImV4cCI6MjEwMDQyMjUyMn0.hCixXa1mT1oF7_iXghgVuxI_hFanO7rRec0cKsLYJ2E';  // ← REEMPLAZA CON TU ANON KEY
-
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0aXBubHptd2R6YXRidmtvamxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4NDY1MjIsImV4cCI6MjEwMDQyMjUyMn0.hCixXa1mT1oF7_iXghgVuxI_hFanO7rRec0cKsLYJ2E';  // ← SOLO CAMBIA ESTO
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+console.log('✅ Supabase inicializado:', typeof supabase);
 // =============================================
 
 const PACKAGES = {
@@ -175,6 +176,7 @@ function balanceOf(ev){
 async function loadEventsFromSupabase() {
   try {
     isLoading = true;
+    console.log('🔄 Cargando eventos desde Supabase...');
     const { data, error } = await supabase
       .from('events')
       .select('*')
