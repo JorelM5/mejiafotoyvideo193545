@@ -114,7 +114,7 @@ table.pp-table{width:100%;border-collapse:collapse;background:var(--surface);bor
 <div class="modal-overlay" id="modal-day"><div class="modal"><button class="modal-close" onclick="closeModal('modal-day')">✕</button><h3 id="modal-day-title">Eventos</h3><div id="modal-day-list"></div></div></div>
 <div class="modal-overlay" id="modal-detail"><div class="modal"><button class="modal-close" onclick="closeModal('modal-detail')">✕</button><h3 id="dt-cliente">Cliente</h3><div class="detail-grid"><div><span>Tipo de evento</span><b id="dt-tipo">—</b></div><div><span>Fecha</span><b id="dt-fecha">—</b></div><div><span>Teléfono</span><b id="dt-telefono">—</b></div><div><span>Paquete</span><b id="dt-paquete">—</b></div><div><span>Precio base</span><b id="dt-precio">—</b></div><div><span>Total final</span><b id="dt-total-final">—</b></div><div><span>Saldo</span><b id="dt-saldo">—</b></div></div><div class="detail-section"><h4>📍 Ubicaciones y Horarios</h4><p><strong>Casa/Hotel:</strong> <span id="dt-casa">—</span> <span id="dt-hora-casa" style="color:var(--gold);">—</span></p><p><strong>Iglesia:</strong> <span id="dt-iglesia">—</span> <span id="dt-hora-iglesia" style="color:var(--gold);">—</span></p><p><strong>Venue/Salón:</strong> <span id="dt-venue">—</span> <span id="dt-hora-venue" style="color:var(--gold);">—</span></p><p><strong>📸 Foto previa:</strong> <span id="dt-foto-previa">—</span></p></div><p id="dt-notas" style="font-size:12.5px;color:var(--text-dim);"></p><label style="display:block;font-size:12px;color:var(--text-dim);text-transform:uppercase;margin:10px 0 4px;">Estado de producción</label><select id="dt-status"></select><label style="display:block;font-size:12px;color:var(--text-dim);text-transform:uppercase;margin:14px 0 4px;">Pagos registrados</label><ul class="pay-list" id="dt-payments"></ul><div class="inline-form"><input type="date" id="dt-pay-date"><input type="number" id="dt-pay-amount" placeholder="Monto $"><input type="text" id="dt-pay-note" placeholder="Nota (opcional)"><button class="btn small" id="dt-pay-add">Agregar pago</button></div><div style="margin-top:18px;display:flex;justify-content:space-between;"><button class="btn danger small" id="dt-delete">🗑️ Eliminar evento</button></div></div></div>
 <div class="modal-overlay" id="modal-clients"><div class="modal"><button class="modal-close" onclick="closeModal('modal-clients')">✕</button><h3 id="modal-clients-title">Clientes con saldo pendiente</h3><div id="modal-clients-list"></div></div></div>
-<script>
+
 // =============================================
 // 🔑 CONFIGURACIÓN DE SUPABASE - SOLO UNA VEZ
 // =============================================
@@ -882,6 +882,6 @@ async function init() {
 document.addEventListener('DOMContentLoaded', function() {
   init();
 });
-</script>
+
 </body>
 </html>
