@@ -70,6 +70,12 @@
             background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
             border-left: 4px solid #764ba2;
         }
+        .delete-btn {
+            transition: all 0.2s;
+        }
+        .delete-btn:hover {
+            transform: scale(1.05);
+        }
         @media (max-width: 768px) {
             .detail-panel {
                 max-height: 60vh;
@@ -85,7 +91,7 @@
                 <i class="fas fa-camera text-purple-600"></i>
                 <span class="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Mejia CRM</span>
                 <span class="text-sm font-normal text-gray-500 bg-gray-200 px-3 py-1 rounded-full">
-                    v3.0
+                    v3.1
                 </span>
             </h1>
             <div class="flex gap-3 flex-wrap">
@@ -214,7 +220,7 @@
                     <!-- Client Header -->
                     <div class="p-6 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50">
                         <div class="flex justify-between items-start">
-                            <div>
+                            <div class="flex-1">
                                 <h2 class="text-2xl font-bold text-gray-800">{{ selectedClient.name }}</h2>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2 text-sm">
                                     <p class="text-gray-600"><i class="fas fa-phone mr-2 text-purple-600"></i>{{ selectedClient.phone || 'Sin teléfono' }}</p>
@@ -225,12 +231,15 @@
                                     <i class="fas fa-sticky-note mr-1 text-purple-600"></i> {{ selectedClient.notes }}
                                 </p>
                             </div>
-                            <div class="flex gap-2 flex-shrink-0">
+                            <div class="flex gap-2 flex-shrink-0 flex-wrap">
                                 <button @click="openModal(selectedClient)" class="text-sm bg-purple-600 text-white px-3 py-1.5 rounded hover:bg-purple-700 transition flex items-center gap-1">
                                     <i class="fas fa-edit"></i> Editar
                                 </button>
                                 <button @click="addProject(selectedClient.id)" class="text-sm bg-green-600 text-white px-3 py-1.5 rounded hover:bg-green-700 transition flex items-center gap-1">
                                     <i class="fas fa-plus"></i> Proyecto
+                                </button>
+                                <button @click="confirmDeleteClient(selectedClient.id)" class="text-sm bg-red-600 text-white px-3 py-1.5 rounded hover:bg-red-700 transition flex items-center gap-1 delete-btn">
+                                    <i class="fas fa-trash"></i> Eliminar
                                 </button>
                             </div>
                         </div>
@@ -404,6 +413,33 @@
                 </div>
             </div>
         </div>
+
+        <!-- Confirm Delete Modal -->
+        <div v-if="showDeleteModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 fade-in" @click.self="closeDeleteModal">
+            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+                <div class="p-6">
+                    <div class="text-center">
+                        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                            <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900 mb-2">¿Eliminar Cliente?</h3>
+                        <p class="text-sm text-gray-500 mb-6">
+                            ¿Estás seguro de que deseas eliminar a <strong class="text-gray-700">{{ clientToDelete ? clientToDelete.name : '' }}</strong>?
+                            <br>
+                            <span class="text-red-500">Esta acción eliminará todos sus proyectos y no se puede deshacer.</span>
+                        </p>
+                        <div class="flex gap-3">
+                            <button @click="deleteClient" class="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition font-medium">
+                                <i class="fas fa-trash mr-2"></i> Sí, Eliminar
+                            </button>
+                            <button @click="closeDeleteModal" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition font-medium">
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.js"></script>
@@ -416,6 +452,8 @@
                 searchQuery: '',
                 filteredClients: [],
                 showModal: false,
+                showDeleteModal: false,
+                clientToDelete: null,
                 editingClient: null,
                 editingProjectIndex: null,
                 taxRates: [
@@ -485,7 +523,6 @@
                 },
                 selectClient(client) {
                     this.selectedClient = client;
-                    // Close mobile menu if needed
                 },
                 calculateTax() {
                     if (this.form.price > 0 && this.form.taxRate > 0) {
@@ -513,13 +550,11 @@
                             projectNotes: ''
                         };
 
-                        // If editing a specific project
                         if (projectIndex !== null && client.projects[projectIndex]) {
                             const project = client.projects[projectIndex];
                             this.form.serviceType = project.serviceType;
                             this.form.price = project.price;
                             this.form.deposit = project.deposit;
-                            // Find tax rate from project
                             const rate = this.taxRates.find(r => {
                                 const calculated = parseFloat((project.price * (r.value / 100)).toFixed(2));
                                 return calculated === project.tax && r.value > 0;
@@ -562,13 +597,40 @@
                     this.editingClient = null;
                     this.editingProjectIndex = null;
                 },
+                confirmDeleteClient(clientId) {
+                    this.clientToDelete = this.clients.find(c => c.id === clientId);
+                    if (this.clientToDelete) {
+                        this.showDeleteModal = true;
+                    }
+                },
+                closeDeleteModal() {
+                    this.showDeleteModal = false;
+                    this.clientToDelete = null;
+                },
+                deleteClient() {
+                    if (this.clientToDelete) {
+                        const clientId = this.clientToDelete.id;
+                        this.clients = this.clients.filter(c => c.id !== clientId);
+                        
+                        // If the deleted client was selected, clear selection
+                        if (this.selectedClient && this.selectedClient.id === clientId) {
+                            this.selectedClient = this.clients.length > 0 ? this.clients[0] : null;
+                        }
+                        
+                        this.saveToLocalStorage();
+                        this.filterClients();
+                        this.closeDeleteModal();
+                        
+                        // Show success message
+                        alert(`✅ Cliente "${this.clientToDelete.name}" eliminado correctamente.`);
+                    }
+                },
                 saveClient() {
                     if (!this.form.name || !this.form.serviceType) {
                         alert('Por favor completa el nombre y tipo de servicio.');
                         return;
                     }
 
-                    // Calculate final tax
                     this.calculateTax();
 
                     const project = {
@@ -584,22 +646,17 @@
 
                     if (this.editingClient) {
                         if (this.editingProjectIndex !== null) {
-                            // Update existing project
                             this.editingClient.projects[this.editingProjectIndex] = project;
                         } else {
-                            // Add new project to existing client
                             this.editingClient.projects.push(project);
                         }
-                        // Update client info
                         this.editingClient.name = this.form.name;
                         this.editingClient.phone = this.form.phone;
                         this.editingClient.email = this.form.email;
                         this.editingClient.address = this.form.address;
                         
-                        // Update selected client
                         this.selectedClient = this.editingClient;
                     } else {
-                        // New client with first project
                         const newClient = {
                             id: Date.now(),
                             name: this.form.name,
@@ -636,16 +693,6 @@
                         }
                     }
                 },
-                deleteClient(clientId) {
-                    if (confirm('¿Eliminar este cliente y todos sus proyectos?')) {
-                        this.clients = this.clients.filter(c => c.id !== clientId);
-                        if (this.selectedClient && this.selectedClient.id === clientId) {
-                            this.selectedClient = null;
-                        }
-                        this.saveToLocalStorage();
-                        this.filterClients();
-                    }
-                },
                 saveToLocalStorage() {
                     try {
                         localStorage.setItem('mejiaCrmData', JSON.stringify({
@@ -664,12 +711,10 @@
                             this.clients = parsed.clients || [];
                             if (parsed.taxRates) this.taxRates = parsed.taxRates;
                             this.filterClients();
-                            // Auto-select first client if exists
                             if (this.clients.length > 0) {
                                 this.selectedClient = this.clients[0];
                             }
                         } else {
-                            // Sample data with Sacramento tax
                             this.clients = [{
                                 id: 1,
                                 name: 'María García',
