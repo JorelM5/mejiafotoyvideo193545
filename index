@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CRM - Gestión de Clientes</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .status-badge {
+            transition: all 0.2s;
+        }
+        .status-badge:hover {
+            transform: scale(1.05);
+        }
+        .card-hover {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+    <div id="app" class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                <i class="fas fa-camera text-blue-600"></i>
+                <span>StudioCRM</span>
+                <span class="text-sm font-normal text-gray-500 bg-gray-200 px-3 py-1 rounded-full">
+                    v1.0
+                </span>
+            </h1>
+            <div class="flex gap-3">
+                <button @click="exportData" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-2">
+                    <i class="fas fa-download"></i> Backup
+                </button>
+                <button @click="importData" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
+                    <i class="fas fa-upload"></i> Restaurar
+                </button>
+                <input type="file" id="fileInput" accept=".json" class="hidden" @change="handleImport" />
+            </div>
+        </header>
+
+        <!-- Stats Dashboard -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500">Clientes</p>
+                        <p class="text-2xl font-bold text-gray-800">{{ clients.length }}</p>
+                    </div>
+                    <div class="bg-blue-100 p-3 rounded-full">
+                        <i class="fas fa-users text-blue-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500">Proyectos Activos</p>
+                        <p class="text-2xl font-bold text-gray-800">{{ activeProjects }}</p>
+                    </div>
+                    <div class="bg-green-100 p-3 rounded-full">
+                        <i class="fas fa-spinner text-green-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500">Ingresos Este Mes</p>
+                        <p class="text-2xl font-bold text-gray-800">${{ monthlyIncome }}</p>
+                    </div>
+                    <div class="bg-purple-100 p-3 rounded-full">
+                        <i class="fas fa-calendar-alt text-purple-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500">Total Impuestos</p>
+                        <p class="text-2xl font-bold text-gray-800">${{ totalTaxes }}</p>
+                    </div>
+                    <div class="bg-orange-100 p-3 rounded-full">
+                        <i class="fas fa-receipt text-orange-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Client Button -->
+        <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
+            <h2 class="text-xl font-semibold text-gray-700 flex items-center gap-2">
+                <i class="fas fa-user-plus text-blue-600"></i>
+                Mis Clientes
+            </h2>
+            <button @click="openModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition shadow-md flex items-center gap-2">
+                <i class="fas fa-plus"></i> Nuevo Cliente
+            </button>
+        </div>
+
+        <!-- Client List -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div v-for="client in clients" :key="client.id" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden card-hover">
+                <div class="p-6">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800">{{ client.name }}</h3>
+                            <p class="text-sm text-gray-500">{{ client.phone }}</p>
+                            <p class="text-sm text-gray-500">{{ client.email }}</p>
+                        </div>
+                        <span class="text-xs bg-gray-200 px-3 py-1 rounded-full text-gray-700">
+                            {{ client.projects.length }} proyectos
+                        </span>
+                    </div>
+                    
+                    <!-- Client Notes -->
+                    <p v-if="client.notes" class="text-sm text-gray-600 bg-gray-50 p-2 rounded mb-3">
+                        <i class="fas fa-sticky-note text-gray-400 mr-1"></i> {{ client.notes }}
+                    </p>
+
+                    <!-- Projects -->
+                    <div class="space-y-3 max-h-60 overflow-y-auto">
+                        <div v-for="(project, index) in client.projects" :key="index" class="bg-gray-50 rounded-lg p-3 border-l-4" :class="project.status === 'completed' ? 'border-green-500' : 'border-yellow-500'">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-medium text-sm text-gray-800">{{ project.serviceType }}</span>
+                                        <span class="text-xs px-2 py-0.5 rounded-full" :class="project.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'">
+                                            {{ project.status === 'completed' ? '✅ Terminado' : '🔄 En Proceso' }}
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1">
+                                        <i class="fas fa-calendar mr-1"></i> {{ project.date }}
+                                    </p>
+                                    <div class="grid grid-cols-2 gap-1 text-xs mt-2">
+                                        <span class="text-gray-600">Precio: ${{ project.price }}</span>
+                                        <span class="text-gray-600">Abono: ${{ project.deposit }}</span>
+                                        <span class="text-gray-600">Impuesto: ${{ project.tax }}</span>
+                                        <span class="font-medium" :class="project.balance > 0 ? 'text-red-600' : 'text-green-600'">
+                                            Saldo: ${{ project.balance }}
+                                        </span>
+                                    </div>
+                                    <p v-if="project.notes" class="text-xs text-gray-500 mt-1">
+                                        <i class="fas fa-pen mr-1"></i> {{ project.notes }}
+                                    </p>
+                                </div>
+                                <button @click="deleteProject(client.id, index)" class="text-red-400 hover:text-red-600 transition text-sm">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Client Actions -->
+                    <div class="flex gap-2 mt-4 pt-3 border-t border-gray-100">
+                        <button @click="openModal(client)" class="text-sm bg-blue-50 text-blue-600 px-3 py-1 rounded hover:bg-blue-100 transition flex items-center gap-1">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                        <button @click="addProject(client.id)" class="text-sm bg-green-50 text-green-600 px-3 py-1 rounded hover:bg-green-100 transition flex items-center gap-1">
+                            <i class="fas fa-plus"></i> Proyecto
+                        </button>
+                        <button @click="deleteClient(client.id)" class="text-sm bg-red-50 text-red-600 px-3 py-1 rounded hover:bg-red-100 transition flex items-center gap-1 ml-auto">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal -->
+        <div v-if="showModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 fade-in" @click.self="closeModal">
+            <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">
+                            {{ editingClient ? 'Editar Cliente' : 'Nuevo Cliente' }}
+                        </h2>
+                        <button @click="closeModal" class="text-gray-400 hover:text-gray-600 transition text-2xl">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <!-- Client Form -->
+                    <form @submit.prevent="saveClient">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+                                <input v-model="form.name" type="text" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                                <input v-model="form.phone" type="tel" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <input v-model="form.email" type="email" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Servicio *</label>
+                                <select v-model="form.serviceType" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option value="">Seleccionar...</option>
+                                    <option value="Foto">📸 Foto</option>
+                                    <option value="Video">🎥 Video</option>
+                                    <option value="PhotoBooth">📷 PhotoBooth</option>
+                                    <option value="Impresiones">🖨️ Impresiones</option>
+                                    <option value="Web">🌐 Web</option>
+                                    <option value="Redes Sociales">📱 Redes Sociales</option>
+                                    <option value="Otro">📌 Otro</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Precio ($)</label>
+                                <input v-model.number="form.price" type="number" step="0.01" min="0" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Abono Inicial ($)</label>
+                                <input v-model.number="form.deposit" type="number" step="0.01" min="0" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Impuesto ($)</label>
+                                <input v-model.number="form.tax" type="number" step="0.01" min="0" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                                <select v-model="form.status" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option value="active">🔄 En Proceso</option>
+                                    <option value="completed">✅ Terminado</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Notas</label>
+                            <textarea v-model="form.notes" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Notas adicionales..."></textarea>
+                        </div>
+                        <div class="flex gap-3 mt-6">
+                            <button type="submit" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-medium">
+                                <i class="fas fa-save mr-2"></i> Guardar
+                            </button>
+                            <button type="button" @click="closeModal" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition font-medium">
+                                Cancelar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.js"></script>
+    <script>
+        new Vue({
+            el: '#app',
+            data: {
+                clients: [],
+                showModal: false,
+                editingClient: null,
+                form: {
+                    name: '',
+                    phone: '',
+                    email: '',
+                    serviceType: '',
+                    price: 0,
+                    deposit: 0,
+                    tax: 0,
+                    status: 'active',
+                    notes: ''
+                }
+            },
+            computed: {
+                activeProjects() {
+                    return this.clients.reduce((sum, c) => sum + c.projects.filter(p => p.status === 'active').length, 0);
+                },
+                monthlyIncome() {
+                    const now = new Date();
+                    const month = now.getMonth();
+                    const year = now.getFullYear();
+                    let total = 0;
+                    this.clients.forEach(c => {
+                        c.projects.forEach(p => {
+                            const date = new Date(p.date);
+                            if (date.getMonth() === month && date.getFullYear() === year) {
+                                total += p.price;
+                            }
+                        });
+                    });
+                    return total.toFixed(2);
+                },
+                totalTaxes() {
+                    let total = 0;
+                    this.clients.forEach(c => {
+                        c.projects.forEach(p => {
+                            total += p.tax || 0;
+                        });
+                    });
+                    return total.toFixed(2);
+                }
+            },
+            methods: {
+                openModal(client = null) {
+                    if (client) {
+                        this.editingClient = client;
+                        this.form = {
+                            name: client.name,
+                            phone: client.phone || '',
+                            email: client.email || '',
+                            serviceType: '',
+                            price: 0,
+                            deposit: 0,
+                            tax: 0,
+                            status: 'active',
+                            notes: client.notes || ''
+                        };
+                    } else {
+                        this.editingClient = null;
+                        this.form = {
+                            name: '',
+                            phone: '',
+                            email: '',
+                            serviceType: '',
+                            price: 0,
+                            deposit: 0,
+                            tax: 0,
+                            status: 'active',
+                            notes: ''
+                        };
+                    }
+                    this.showModal = true;
+                },
+                closeModal() {
+                    this.showModal = false;
+                    this.editingClient = null;
+                },
+                saveClient() {
+                    if (!this.form.name || !this.form.serviceType) {
+                        alert('Por favor completa el nombre y tipo de servicio.');
+                        return;
+                    }
+
+                    const project = {
+                        serviceType: this.form.serviceType,
+                        price: this.form.price || 0,
+                        deposit: this.form.deposit || 0,
+                        tax: this.form.tax || 0,
+                        balance: (this.form.price || 0) - (this.form.deposit || 0),
+                        status: this.form.status || 'active',
+                        notes: this.form.notes || '',
+                        date: new Date().toISOString().split('T')[0]
+                    };
+
+                    if (this.editingClient) {
+                        // Add project to existing client
+                        this.editingClient.projects.push(project);
+                        // Update client info
+                        this.editingClient.name = this.form.name;
+                        this.editingClient.phone = this.form.phone;
+                        this.editingClient.email = this.form.email;
+                        this.editingClient.notes = this.form.notes;
+                    } else {
+                        // New client with first project
+                        const newClient = {
+                            id: Date.now(),
+                            name: this.form.name,
+                            phone: this.form.phone || '',
+                            email: this.form.email || '',
+                            notes: this.form.notes || '',
+                            projects: [project]
+                        };
+                        this.clients.push(newClient);
+                    }
+
+                    this.saveToLocalStorage();
+                    this.closeModal();
+                },
+                addProject(clientId) {
+                    const client = this.clients.find(c => c.id === clientId);
+                    if (client) {
+                        this.openModal(client);
+                    }
+                },
+                deleteProject(clientId, projectIndex) {
+                    if (confirm('¿Eliminar este proyecto?')) {
+                        const client = this.clients.find(c => c.id === clientId);
+                        if (client) {
+                            client.projects.splice(projectIndex, 1);
+                            this.saveToLocalStorage();
+                        }
+                    }
+                },
+                deleteClient(clientId) {
+                    if (confirm('¿Eliminar este cliente y todos sus proyectos?')) {
+                        this.clients = this.clients.filter(c => c.id !== clientId);
+                        this.saveToLocalStorage();
+                    }
+                },
+                saveToLocalStorage() {
+                    try {
+                        localStorage.setItem('crmData', JSON.stringify(this.clients));
+                    } catch (e) {
+                        console.error('Error saving:', e);
+                    }
+                },
+                loadFromLocalStorage() {
+                    try {
+                        const data = localStorage.getItem('crmData');
+                        if (data) {
+                            this.clients = JSON.parse(data);
+                        } else {
+                            // Sample data for demo
+                            this.clients = [{
+                                id: 1,
+                                name: 'María García',
+                                phone: '+52 55 1234 5678',
+                                email: 'maria@example.com',
+                                notes: 'Cliente recurrente',
+                                projects: [{
+                                    serviceType: 'Foto',
+                                    price: 1500,
+                                    deposit: 500,
+                                    tax: 120,
+                                    balance: 1000,
+                                    status: 'active',
+                                    notes: 'Sesión de fotos en estudio',
+                                    date: '2026-01-15'
+                                }, {
+                                    serviceType: 'Video',
+                                    price: 2500,
+                                    deposit: 1000,
+                                    tax: 200,
+                                    balance: 1500,
+                                    status: 'completed',
+                                    notes: 'Video corporativo',
+                                    date: '2025-12-10'
+                                }]
+                            }, {
+                                id: 2,
+                                name: 'Carlos López',
+                                phone: '+52 55 8765 4321',
+                                email: 'carlos@example.com',
+                                notes: 'Cliente nuevo',
+                                projects: [{
+                                    serviceType: 'Web',
+                                    price: 5000,
+                                    deposit: 2000,
+                                    tax: 400,
+                                    balance: 3000,
+                                    status: 'active',
+                                    notes: 'Desarrollo de sitio web',
+                                    date: '2026-01-20'
+                                }]
+                            }];
+                            this.saveToLocalStorage();
+                        }
+                    } catch (e) {
+                        console.error('Error loading:', e);
+                    }
+                },
+                exportData() {
+                    const data = JSON.stringify(this.clients, null, 2);
+                    const blob = new Blob([data], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `crm_backup_${new Date().toISOString().split('T')[0]}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                },
+                importData() {
+                    document.getElementById('fileInput').click();
+                },
+                handleImport(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            if (Array.isArray(data)) {
+                                this.clients = data;
+                                this.saveToLocalStorage();
+                                alert('Datos importados correctamente.');
+                            } else {
+                                alert('Archivo inválido.');
+                            }
+                        } catch (error) {
+                            alert('Error al leer el archivo.');
+                        }
+                    };
+                    reader.readAsText(file);
+                    event.target.value = '';
+                }
+            },
+            mounted() {
+                this.loadFromLocalStorage();
+            }
+        });
+    </script>
+</body>
+</html>
