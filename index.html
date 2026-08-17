@@ -41,9 +41,6 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
-        .search-highlight {
-            background-color: #fef3c7;
-        }
         .tax-badge {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
@@ -76,9 +73,59 @@
         .delete-btn:hover {
             transform: scale(1.05);
         }
+        .calendar-day {
+            transition: all 0.2s;
+            cursor: pointer;
+            min-height: 60px;
+        }
+        .calendar-day:hover {
+            background-color: #f3f4f6;
+            transform: scale(1.02);
+        }
+        .calendar-day.has-event {
+            background-color: #ede9fe;
+            border: 2px solid #7c3aed;
+        }
+        .calendar-day.today {
+            background-color: #dbeafe;
+            border: 2px solid #2563eb;
+        }
+        .calendar-day.selected {
+            background-color: #7c3aed;
+            color: white;
+        }
+        .calendar-day.selected:hover {
+            background-color: #6d28d9;
+        }
+        .event-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+        .calendar-nav-btn {
+            transition: all 0.2s;
+        }
+        .calendar-nav-btn:hover {
+            background-color: #f3f4f6;
+            transform: scale(1.05);
+        }
         @media (max-width: 768px) {
             .detail-panel {
                 max-height: 60vh;
+            }
+            .calendar-day {
+                min-height: 40px;
+                font-size: 12px;
+            }
+            .event-badge {
+                font-size: 8px;
+                padding: 0 4px;
             }
         }
     </style>
@@ -91,7 +138,7 @@
                 <i class="fas fa-camera text-purple-600"></i>
                 <span class="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Mejia CRM</span>
                 <span class="text-sm font-normal text-gray-500 bg-gray-200 px-3 py-1 rounded-full">
-                    v3.1
+                    v3.2
                 </span>
             </h1>
             <div class="flex gap-3 flex-wrap">
@@ -169,6 +216,76 @@
                 <button @click="openModal()" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition shadow-md flex items-center gap-2 whitespace-nowrap">
                     <i class="fas fa-plus"></i> Nuevo Cliente
                 </button>
+            </div>
+        </div>
+
+        <!-- Calendar Section -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-4 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-gray-700 flex items-center gap-2">
+                    <i class="fas fa-calendar-alt text-purple-600"></i>
+                    Calendario de Proyectos
+                </h2>
+                <div class="flex items-center gap-2">
+                    <button @click="prevMonth" class="calendar-nav-btn p-2 rounded-lg hover:bg-gray-100 transition">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <span class="font-medium text-gray-700 min-w-[140px] text-center">{{ currentMonthName }} {{ currentYear }}</span>
+                    <button @click="nextMonth" class="calendar-nav-btn p-2 rounded-lg hover:bg-gray-100 transition">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Calendar Grid -->
+            <div class="grid grid-cols-7 gap-1">
+                <div v-for="day in weekDays" :key="day" class="text-center text-xs font-semibold text-gray-500 py-2">
+                    {{ day }}
+                </div>
+                <div 
+                    v-for="day in calendarDays" 
+                    :key="day.date"
+                    @click="selectDate(day.date)"
+                    class="calendar-day p-1 rounded-lg border border-gray-100"
+                    :class="{
+                        'has-event': day.hasEvent,
+                        'today': day.isToday,
+                        'selected': day.isSelected,
+                        'text-gray-400': !day.isCurrentMonth
+                    }"
+                >
+                    <div class="flex flex-col h-full">
+                        <span class="text-sm font-medium" :class="day.isCurrentMonth ? 'text-gray-800' : 'text-gray-400'">
+                            {{ day.day }}
+                        </span>
+                        <div class="flex-1 mt-1 space-y-0.5 overflow-hidden">
+                            <div v-for="event in day.events" :key="event.id" class="event-badge text-xs">
+                                {{ event.clientName }}: {{ event.service }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Events for selected date -->
+            <div v-if="selectedDate" class="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                <h3 class="font-semibold text-purple-800 mb-2 flex items-center gap-2">
+                    <i class="fas fa-list"></i>
+                    Eventos del {{ formatDate(selectedDate) }}
+                </h3>
+                <div v-if="getEventsForDate(selectedDate).length > 0" class="space-y-2">
+                    <div v-for="event in getEventsForDate(selectedDate)" :key="event.id" class="bg-white p-3 rounded-lg shadow-sm flex justify-between items-center">
+                        <div>
+                            <span class="font-medium text-gray-800">{{ event.clientName }}</span>
+                            <span class="text-sm text-gray-600 ml-2">{{ event.service }}</span>
+                            <span class="text-xs text-gray-500 ml-2">${{ event.price }}</span>
+                        </div>
+                        <span class="text-xs px-2 py-1 rounded-full" :class="event.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'">
+                            {{ event.status === 'completed' ? '✅ Terminado' : '🔄 En Proceso' }}
+                        </span>
+                    </div>
+                </div>
+                <p v-else class="text-gray-500 text-sm">No hay eventos en esta fecha</p>
             </div>
         </div>
 
@@ -388,12 +505,23 @@
                                     </div>
                                 </div>
                                 <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha del Proyecto</label>
+                                    <input v-model="form.projectDate" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent" />
+                                </div>
+                                <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
                                     <select v-model="form.status" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                                         <option value="active">🔄 En Proceso</option>
                                         <option value="completed">✅ Terminado</option>
                                     </select>
                                 </div>
+                            </div>
+                            <!-- Date conflict warning -->
+                            <div v-if="dateConflict" class="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <p class="text-sm text-red-600 flex items-center gap-2">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                    ⚠️ Esta fecha ya tiene un proyecto: "{{ dateConflict.serviceType }}" - {{ dateConflict.clientName }}
+                                </p>
                             </div>
                             <div class="mt-4">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Notas del Proyecto</label>
@@ -402,7 +530,7 @@
                         </div>
 
                         <div class="flex gap-3 mt-6">
-                            <button type="submit" class="flex-1 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition font-medium">
+                            <button type="submit" class="flex-1 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition font-medium" :disabled="dateConflict">
                                 <i class="fas fa-save mr-2"></i> {{ editingProjectIndex !== null ? 'Actualizar Proyecto' : 'Guardar Cliente' }}
                             </button>
                             <button type="button" @click="closeModal" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition font-medium">
@@ -456,6 +584,10 @@
                 clientToDelete: null,
                 editingClient: null,
                 editingProjectIndex: null,
+                currentMonth: new Date().getMonth(),
+                currentYear: new Date().getFullYear(),
+                selectedDate: null,
+                weekDays: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
                 taxRates: [
                     { label: '8.75% - Sacramento, CA', value: 8.75 },
                     { label: '8.50% - Sacramento (otras zonas)', value: 8.50 },
@@ -475,6 +607,7 @@
                     deposit: 0,
                     taxRate: 8.75,
                     tax: 0,
+                    projectDate: '',
                     status: 'active',
                     projectNotes: ''
                 }
@@ -506,9 +639,169 @@
                         });
                     });
                     return total.toFixed(2);
+                },
+                currentMonthName() {
+                    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                    return months[this.currentMonth];
+                },
+                calendarDays() {
+                    const days = [];
+                    const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+                    const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
+                    const startDay = firstDay.getDay(); // 0 = Sunday
+                    const totalDays = lastDay.getDate();
+                    const today = new Date();
+                    
+                    // Get all events for this month
+                    const events = this.getAllEvents();
+                    
+                    // Add days from previous month
+                    const prevMonthLastDay = new Date(this.currentYear, this.currentMonth, 0).getDate();
+                    for (let i = startDay - 1; i >= 0; i--) {
+                        const date = new Date(this.currentYear, this.currentMonth - 1, prevMonthLastDay - i);
+                        const dateStr = date.toISOString().split('T')[0];
+                        const dayEvents = events.filter(e => e.date === dateStr);
+                        days.push({
+                            day: prevMonthLastDay - i,
+                            date: dateStr,
+                            isCurrentMonth: false,
+                            isToday: false,
+                            isSelected: this.selectedDate === dateStr,
+                            hasEvent: dayEvents.length > 0,
+                            events: dayEvents
+                        });
+                    }
+                    
+                    // Add days of current month
+                    for (let i = 1; i <= totalDays; i++) {
+                        const date = new Date(this.currentYear, this.currentMonth, i);
+                        const dateStr = date.toISOString().split('T')[0];
+                        const isToday = date.getDate() === today.getDate() && 
+                                       date.getMonth() === today.getMonth() && 
+                                       date.getFullYear() === today.getFullYear();
+                        const dayEvents = events.filter(e => e.date === dateStr);
+                        days.push({
+                            day: i,
+                            date: dateStr,
+                            isCurrentMonth: true,
+                            isToday: isToday,
+                            isSelected: this.selectedDate === dateStr,
+                            hasEvent: dayEvents.length > 0,
+                            events: dayEvents
+                        });
+                    }
+                    
+                    // Add days from next month to complete the grid
+                    const remainingDays = (7 - (days.length % 7)) % 7;
+                    for (let i = 1; i <= remainingDays; i++) {
+                        const date = new Date(this.currentYear, this.currentMonth + 1, i);
+                        const dateStr = date.toISOString().split('T')[0];
+                        const dayEvents = events.filter(e => e.date === dateStr);
+                        days.push({
+                            day: i,
+                            date: dateStr,
+                            isCurrentMonth: false,
+                            isToday: false,
+                            isSelected: this.selectedDate === dateStr,
+                            hasEvent: dayEvents.length > 0,
+                            events: dayEvents
+                        });
+                    }
+                    
+                    return days;
+                },
+                dateConflict() {
+                    if (!this.form.projectDate || !this.editingClient) return null;
+                    
+                    // Check if date already has a project for this client
+                    const existingProject = this.editingClient.projects.find((p, index) => {
+                        if (this.editingProjectIndex !== null && index === this.editingProjectIndex) return false;
+                        return p.date === this.form.projectDate;
+                    });
+                    
+                    if (existingProject) {
+                        return {
+                            serviceType: existingProject.serviceType,
+                            clientName: this.editingClient.name
+                        };
+                    }
+                    
+                    // Check if date already has a project from another client
+                    for (const client of this.clients) {
+                        if (client.id === this.editingClient.id) continue;
+                        const conflict = client.projects.find(p => p.date === this.form.projectDate);
+                        if (conflict) {
+                            return {
+                                serviceType: conflict.serviceType,
+                                clientName: client.name
+                            };
+                        }
+                    }
+                    
+                    return null;
                 }
             },
             methods: {
+                getAllEvents() {
+                    const events = [];
+                    this.clients.forEach(client => {
+                        client.projects.forEach(project => {
+                            if (project.date) {
+                                events.push({
+                                    id: `${client.id}-${project.date}`,
+                                    clientName: client.name,
+                                    service: project.serviceType,
+                                    date: project.date,
+                                    price: project.price,
+                                    status: project.status,
+                                    clientId: client.id
+                                });
+                            }
+                        });
+                    });
+                    return events;
+                },
+                getEventsForDate(dateStr) {
+                    const events = [];
+                    this.clients.forEach(client => {
+                        client.projects.forEach(project => {
+                            if (project.date === dateStr) {
+                                events.push({
+                                    clientName: client.name,
+                                    service: project.serviceType,
+                                    price: project.price,
+                                    status: project.status,
+                                    date: project.date
+                                });
+                            }
+                        });
+                    });
+                    return events;
+                },
+                selectDate(dateStr) {
+                    this.selectedDate = dateStr;
+                },
+                formatDate(dateStr) {
+                    const date = new Date(dateStr + 'T00:00:00');
+                    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                    return `${date.getDate()} de ${months[date.getMonth()]} de ${date.getFullYear()}`;
+                },
+                prevMonth() {
+                    if (this.currentMonth === 0) {
+                        this.currentMonth = 11;
+                        this.currentYear--;
+                    } else {
+                        this.currentMonth--;
+                    }
+                },
+                nextMonth() {
+                    if (this.currentMonth === 11) {
+                        this.currentMonth = 0;
+                        this.currentYear++;
+                    } else {
+                        this.currentMonth++;
+                    }
+                },
                 filterClients() {
                     if (!this.searchQuery.trim()) {
                         this.filteredClients = [...this.clients];
@@ -546,6 +839,7 @@
                             deposit: 0,
                             taxRate: 8.75,
                             tax: 0,
+                            projectDate: '',
                             status: 'active',
                             projectNotes: ''
                         };
@@ -555,6 +849,7 @@
                             this.form.serviceType = project.serviceType;
                             this.form.price = project.price;
                             this.form.deposit = project.deposit;
+                            this.form.projectDate = project.date || '';
                             const rate = this.taxRates.find(r => {
                                 const calculated = parseFloat((project.price * (r.value / 100)).toFixed(2));
                                 return calculated === project.tax && r.value > 0;
@@ -565,11 +860,15 @@
                             this.form.projectNotes = project.notes || '';
                             this.calculateTax();
                         } else {
+                            // Set default date to today
+                            const today = new Date();
+                            this.form.projectDate = today.toISOString().split('T')[0];
                             this.calculateTax();
                         }
                     } else {
                         this.editingClient = null;
                         this.editingProjectIndex = null;
+                        const today = new Date();
                         this.form = {
                             name: '',
                             phone: '',
@@ -580,6 +879,7 @@
                             deposit: 0,
                             taxRate: 8.75,
                             tax: 0,
+                            projectDate: today.toISOString().split('T')[0],
                             status: 'active',
                             projectNotes: ''
                         };
@@ -612,7 +912,6 @@
                         const clientId = this.clientToDelete.id;
                         this.clients = this.clients.filter(c => c.id !== clientId);
                         
-                        // If the deleted client was selected, clear selection
                         if (this.selectedClient && this.selectedClient.id === clientId) {
                             this.selectedClient = this.clients.length > 0 ? this.clients[0] : null;
                         }
@@ -621,13 +920,18 @@
                         this.filterClients();
                         this.closeDeleteModal();
                         
-                        // Show success message
                         alert(`✅ Cliente "${this.clientToDelete.name}" eliminado correctamente.`);
                     }
                 },
                 saveClient() {
                     if (!this.form.name || !this.form.serviceType) {
                         alert('Por favor completa el nombre y tipo de servicio.');
+                        return;
+                    }
+
+                    // Check for date conflict
+                    if (this.dateConflict) {
+                        alert(`❌ No se puede guardar. Esta fecha ya tiene un proyecto: "${this.dateConflict.serviceType}" de ${this.dateConflict.clientName}`);
                         return;
                     }
 
@@ -641,7 +945,7 @@
                         balance: (this.form.price || 0) - (this.form.deposit || 0) + (this.form.tax || 0),
                         status: this.form.status || 'active',
                         notes: this.form.projectNotes || '',
-                        date: new Date().toISOString().split('T')[0]
+                        date: this.form.projectDate || new Date().toISOString().split('T')[0]
                     };
 
                     if (this.editingClient) {
@@ -714,6 +1018,9 @@
                             if (this.clients.length > 0) {
                                 this.selectedClient = this.clients[0];
                             }
+                            // Set default selected date to today
+                            const today = new Date();
+                            this.selectedDate = today.toISOString().split('T')[0];
                         } else {
                             this.clients = [{
                                 id: 1,
@@ -763,6 +1070,8 @@
                             if (this.clients.length > 0) {
                                 this.selectedClient = this.clients[0];
                             }
+                            const today = new Date();
+                            this.selectedDate = today.toISOString().split('T')[0];
                             this.saveToLocalStorage();
                         }
                     } catch (e) {
