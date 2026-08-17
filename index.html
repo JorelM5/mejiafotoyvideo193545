@@ -4,9 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mejia CRM - Gestión de Clientes</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
         .fade-in {
@@ -16,18 +14,18 @@
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .status-badge {
+        .card-hover {
             transition: all 0.2s;
         }
-        .status-badge:hover {
-            transform: scale(1.05);
-        }
-        .card-hover {
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
         .card-hover:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+            background-color: #f9fafb;
+        }
+        .active-client {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .active-client:hover {
+            opacity: 0.9;
         }
         ::-webkit-scrollbar {
             width: 8px;
@@ -43,27 +41,58 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
+        .search-highlight {
+            background-color: #fef3c7;
+        }
         .tax-badge {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .project-item {
+            transition: all 0.2s;
+        }
+        .project-item:hover {
+            background-color: #f3f4f6;
+            transform: translateX(4px);
+        }
+        .detail-panel {
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+        }
+        .client-list-item {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .client-list-item:hover {
+            background-color: #f3f4f6;
+            transform: translateX(4px);
+        }
+        .client-list-item.active {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            border-left: 4px solid #764ba2;
+        }
+        @media (max-width: 768px) {
+            .detail-panel {
+                max-height: 60vh;
+            }
         }
     </style>
 </head>
 <body class="bg-gray-50 font-sans antialiased">
-    <div id="app" class="container mx-auto px-4 py-8 max-w-7xl">
+    <div id="app" class="container mx-auto px-4 py-6 max-w-7xl">
         <!-- Header -->
-        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
             <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
                 <i class="fas fa-camera text-purple-600"></i>
                 <span class="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Mejia CRM</span>
                 <span class="text-sm font-normal text-gray-500 bg-gray-200 px-3 py-1 rounded-full">
-                    v2.0
+                    v3.0
                 </span>
             </h1>
             <div class="flex gap-3 flex-wrap">
-                <button @click="exportData" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-2 shadow-sm">
+                <button @click="exportData" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-2 shadow-sm text-sm">
                     <i class="fas fa-download"></i> Backup
                 </button>
-                <button @click="importData" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2 shadow-sm">
+                <button @click="importData" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2 shadow-sm text-sm">
                     <i class="fas fa-upload"></i> Restaurar
                 </button>
                 <input type="file" id="fileInput" accept=".json" class="hidden" @change="handleImport" />
@@ -71,183 +100,221 @@
         </header>
 
         <!-- Stats Dashboard -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 card-hover">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm text-gray-500">Clientes</p>
-                        <p class="text-2xl font-bold text-gray-800">{{ clients.length }}</p>
+                        <p class="text-xs text-gray-500">Clientes</p>
+                        <p class="text-xl font-bold text-gray-800">{{ clients.length }}</p>
                     </div>
-                    <div class="bg-blue-100 p-3 rounded-full">
-                        <i class="fas fa-users text-blue-600 text-xl"></i>
+                    <div class="bg-blue-100 p-2 rounded-full">
+                        <i class="fas fa-users text-blue-600"></i>
                     </div>
                 </div>
             </div>
-            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 card-hover">
+            <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm text-gray-500">Proyectos Activos</p>
-                        <p class="text-2xl font-bold text-gray-800">{{ activeProjects }}</p>
+                        <p class="text-xs text-gray-500">Proyectos Activos</p>
+                        <p class="text-xl font-bold text-gray-800">{{ activeProjects }}</p>
                     </div>
-                    <div class="bg-green-100 p-3 rounded-full">
-                        <i class="fas fa-spinner text-green-600 text-xl"></i>
+                    <div class="bg-green-100 p-2 rounded-full">
+                        <i class="fas fa-spinner text-green-600"></i>
                     </div>
                 </div>
             </div>
-            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 card-hover">
+            <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm text-gray-500">Ingresos Este Mes</p>
-                        <p class="text-2xl font-bold text-gray-800">${{ monthlyIncome }}</p>
+                        <p class="text-xs text-gray-500">Ingresos Este Mes</p>
+                        <p class="text-xl font-bold text-gray-800">${{ monthlyIncome }}</p>
                     </div>
-                    <div class="bg-purple-100 p-3 rounded-full">
-                        <i class="fas fa-calendar-alt text-purple-600 text-xl"></i>
+                    <div class="bg-purple-100 p-2 rounded-full">
+                        <i class="fas fa-calendar-alt text-purple-600"></i>
                     </div>
                 </div>
             </div>
-            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 card-hover">
+            <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm text-gray-500">Total Impuestos</p>
-                        <p class="text-2xl font-bold text-gray-800">${{ totalTaxes }}</p>
+                        <p class="text-xs text-gray-500">Total Impuestos</p>
+                        <p class="text-xl font-bold text-gray-800">${{ totalTaxes }}</p>
                     </div>
-                    <div class="tax-badge p-3 rounded-full">
-                        <i class="fas fa-receipt text-white text-xl"></i>
+                    <div class="tax-badge p-2 rounded-full">
+                        <i class="fas fa-receipt text-white"></i>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Tax Configuration -->
-        <div class="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-4 mb-6 border border-purple-200">
-            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-                <div class="flex items-center gap-3">
-                    <i class="fas fa-percent text-purple-600 text-xl"></i>
-                    <span class="font-medium text-gray-700">Configuración de Impuestos:</span>
+        <!-- Search and Add Client -->
+        <div class="bg-white rounded-lg shadow-sm p-4 mb-6 border border-gray-100">
+            <div class="flex flex-col md:flex-row gap-3">
+                <div class="flex-1 relative">
+                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                    <input 
+                        v-model="searchQuery" 
+                        type="text" 
+                        placeholder="🔍 Buscar cliente por nombre, teléfono o email..." 
+                        class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        @input="filterClients"
+                    />
                 </div>
-                <div class="flex items-center gap-4 flex-wrap">
-                    <div class="flex items-center gap-2">
-                        <label class="text-sm text-gray-600">Porcentaje:</label>
-                        <input v-model.number="taxRate" type="number" step="0.01" min="0" max="100" class="w-20 border border-gray-300 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent" />
-                        <span class="text-sm text-gray-600">%</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <label class="text-sm text-gray-600">Modo:</label>
-                        <select v-model="taxMode" class="border border-gray-300 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                            <option value="auto">Automático (calcula)</option>
-                            <option value="manual">Manual (ingreso fijo)</option>
-                        </select>
-                    </div>
-                    <span class="text-xs text-gray-500">
-                        <i class="fas fa-info-circle mr-1"></i>
-                        {{ taxMode === 'auto' ? 'El impuesto se calcula automáticamente' : 'Ingresa el monto del impuesto manualmente' }}
-                    </span>
-                </div>
+                <button @click="openModal()" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition shadow-md flex items-center gap-2 whitespace-nowrap">
+                    <i class="fas fa-plus"></i> Nuevo Cliente
+                </button>
             </div>
         </div>
 
-        <!-- Add Client Button -->
-        <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
-            <h2 class="text-xl font-semibold text-gray-700 flex items-center gap-2">
-                <i class="fas fa-user-plus text-purple-600"></i>
-                Mis Clientes
-            </h2>
-            <button @click="openModal()" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition shadow-md flex items-center gap-2">
-                <i class="fas fa-plus"></i> Nuevo Cliente
-            </button>
-        </div>
-
-        <!-- Client List -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            <div v-for="client in clients" :key="client.id" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden card-hover">
-                <div class="p-6">
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <h3 class="text-lg font-semibold text-gray-800">{{ client.name }}</h3>
-                            <p class="text-sm text-gray-500">
-                                <i class="fas fa-phone mr-1"></i> {{ client.phone || 'Sin teléfono' }}
-                            </p>
-                            <p class="text-sm text-gray-500">
-                                <i class="fas fa-envelope mr-1"></i> {{ client.email || 'Sin email' }}
-                            </p>
-                            <p v-if="client.address" class="text-sm text-gray-500">
-                                <i class="fas fa-map-pin mr-1"></i> {{ client.address }}
-                            </p>
+        <!-- Main Content: Two Columns -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left: Client List -->
+            <div class="lg:col-span-1 bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+                <div class="p-4 bg-gray-50 border-b border-gray-200">
+                    <h2 class="font-semibold text-gray-700 flex items-center gap-2">
+                        <i class="fas fa-list text-purple-600"></i>
+                        Lista de Clientes
+                        <span class="ml-auto text-sm text-gray-500">{{ filteredClients.length }}</span>
+                    </h2>
+                </div>
+                <div class="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
+                    <div 
+                        v-for="client in filteredClients" 
+                        :key="client.id"
+                        @click="selectClient(client)"
+                        class="client-list-item p-4"
+                        :class="{ 'active': selectedClient && selectedClient.id === client.id }"
+                    >
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1 min-w-0">
+                                <p class="font-medium text-gray-800 truncate">{{ client.name }}</p>
+                                <p class="text-sm text-gray-500 truncate">
+                                    <i class="fas fa-phone text-xs mr-1"></i> {{ client.phone || 'Sin teléfono' }}
+                                </p>
+                                <p class="text-xs text-gray-400 truncate">
+                                    {{ client.projects.length }} proyectos • 
+                                    {{ client.projects.filter(p => p.status === 'active').length }} activos
+                                </p>
+                            </div>
+                            <span class="ml-2 text-xs px-2 py-1 rounded-full" :class="client.projects.some(p => p.status === 'active') ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-500'">
+                                {{ client.projects.some(p => p.status === 'active') ? '🔄' : '✅' }}
+                            </span>
                         </div>
-                        <span class="text-xs bg-gray-200 px-3 py-1 rounded-full text-gray-700">
-                            {{ client.projects.length }} proyectos
-                        </span>
                     </div>
-                    
-                    <!-- Client Notes -->
-                    <p v-if="client.notes" class="text-sm text-gray-600 bg-gray-50 p-2 rounded mb-3">
-                        <i class="fas fa-sticky-note text-gray-400 mr-1"></i> {{ client.notes }}
-                    </p>
+                    <div v-if="filteredClients.length === 0" class="p-8 text-center text-gray-500">
+                        <i class="fas fa-user-slash text-3xl mb-2"></i>
+                        <p>No se encontraron clientes</p>
+                    </div>
+                </div>
+            </div>
 
-                    <!-- Projects -->
-                    <div class="space-y-3 max-h-60 overflow-y-auto">
-                        <div v-for="(project, index) in client.projects" :key="index" class="bg-gray-50 rounded-lg p-3 border-l-4" :class="project.status === 'completed' ? 'border-green-500' : 'border-yellow-500'">
-                            <div class="flex justify-between items-start">
-                                <div class="flex-1">
-                                    <div class="flex items-center gap-2 flex-wrap">
-                                        <span class="font-medium text-sm text-gray-800">{{ project.serviceType }}</span>
-                                        <span class="text-xs px-2 py-0.5 rounded-full" :class="project.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'">
-                                            {{ project.status === 'completed' ? '✅ Terminado' : '🔄 En Proceso' }}
-                                        </span>
-                                    </div>
-                                    <p class="text-xs text-gray-500 mt-1">
-                                        <i class="fas fa-calendar mr-1"></i> {{ project.date }}
-                                    </p>
-                                    <div class="grid grid-cols-2 gap-1 text-xs mt-2">
-                                        <span class="text-gray-600">Precio: ${{ project.price }}</span>
-                                        <span class="text-gray-600">Abono: ${{ project.deposit }}</span>
-                                        <span class="text-gray-600">Impuesto: ${{ project.tax }}</span>
-                                        <span class="font-medium" :class="project.balance > 0 ? 'text-red-600' : 'text-green-600'">
-                                            Saldo: ${{ project.balance }}
-                                        </span>
-                                    </div>
-                                    <p v-if="project.notes" class="text-xs text-gray-500 mt-1">
-                                        <i class="fas fa-pen mr-1"></i> {{ project.notes }}
-                                    </p>
+            <!-- Right: Client Detail -->
+            <div class="lg:col-span-2">
+                <div v-if="selectedClient" class="bg-white rounded-lg shadow-sm border border-gray-100 detail-panel">
+                    <!-- Client Header -->
+                    <div class="p-6 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-800">{{ selectedClient.name }}</h2>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2 text-sm">
+                                    <p class="text-gray-600"><i class="fas fa-phone mr-2 text-purple-600"></i>{{ selectedClient.phone || 'Sin teléfono' }}</p>
+                                    <p class="text-gray-600"><i class="fas fa-envelope mr-2 text-purple-600"></i>{{ selectedClient.email || 'Sin email' }}</p>
+                                    <p v-if="selectedClient.address" class="text-gray-600 md:col-span-2"><i class="fas fa-map-pin mr-2 text-purple-600"></i>{{ selectedClient.address }}</p>
                                 </div>
-                                <button @click="deleteProject(client.id, index)" class="text-red-400 hover:text-red-600 transition text-sm">
-                                    <i class="fas fa-times"></i>
+                                <p v-if="selectedClient.notes" class="text-sm text-gray-600 mt-2 bg-white/50 p-2 rounded">
+                                    <i class="fas fa-sticky-note mr-1 text-purple-600"></i> {{ selectedClient.notes }}
+                                </p>
+                            </div>
+                            <div class="flex gap-2 flex-shrink-0">
+                                <button @click="openModal(selectedClient)" class="text-sm bg-purple-600 text-white px-3 py-1.5 rounded hover:bg-purple-700 transition flex items-center gap-1">
+                                    <i class="fas fa-edit"></i> Editar
+                                </button>
+                                <button @click="addProject(selectedClient.id)" class="text-sm bg-green-600 text-white px-3 py-1.5 rounded hover:bg-green-700 transition flex items-center gap-1">
+                                    <i class="fas fa-plus"></i> Proyecto
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Client Actions -->
-                    <div class="flex gap-2 mt-4 pt-3 border-t border-gray-100">
-                        <button @click="openModal(client)" class="text-sm bg-purple-50 text-purple-600 px-3 py-1 rounded hover:bg-purple-100 transition flex items-center gap-1">
-                            <i class="fas fa-edit"></i> Editar
-                        </button>
-                        <button @click="addProject(client.id)" class="text-sm bg-green-50 text-green-600 px-3 py-1 rounded hover:bg-green-100 transition flex items-center gap-1">
-                            <i class="fas fa-plus"></i> Proyecto
-                        </button>
-                        <button @click="deleteClient(client.id)" class="text-sm bg-red-50 text-red-600 px-3 py-1 rounded hover:bg-red-100 transition flex items-center gap-1 ml-auto">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                    <!-- Projects -->
+                    <div class="p-6">
+                        <h3 class="font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                            <i class="fas fa-tasks text-purple-600"></i>
+                            Proyectos
+                            <span class="ml-auto text-sm text-gray-500">{{ selectedClient.projects.length }}</span>
+                        </h3>
+                        <div class="space-y-3">
+                            <div v-for="(project, index) in selectedClient.projects" :key="index" class="project-item bg-gray-50 rounded-lg p-4 border-l-4" :class="project.status === 'completed' ? 'border-green-500' : 'border-yellow-500'">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <span class="font-medium text-gray-800">{{ project.serviceType }}</span>
+                                            <span class="text-xs px-2 py-0.5 rounded-full" :class="project.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'">
+                                                {{ project.status === 'completed' ? '✅ Terminado' : '🔄 En Proceso' }}
+                                            </span>
+                                            <span class="text-xs text-gray-400">
+                                                <i class="fas fa-calendar mr-1"></i> {{ project.date }}
+                                            </span>
+                                        </div>
+                                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 text-sm">
+                                            <span class="text-gray-600">Precio: ${{ project.price }}</span>
+                                            <span class="text-gray-600">Abono: ${{ project.deposit }}</span>
+                                            <span class="text-gray-600">Impuesto: ${{ project.tax }}</span>
+                                            <span class="font-medium" :class="project.balance > 0 ? 'text-red-600' : 'text-green-600'">
+                                                Saldo: ${{ project.balance }}
+                                            </span>
+                                        </div>
+                                        <p v-if="project.notes" class="text-sm text-gray-500 mt-2">
+                                            <i class="fas fa-pen mr-1"></i> {{ project.notes }}
+                                        </p>
+                                    </div>
+                                    <div class="flex gap-2 ml-2">
+                                        <button @click="editProject(index)" class="text-blue-500 hover:text-blue-700 transition text-sm">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button @click="deleteProject(selectedClient.id, index)" class="text-red-400 hover:text-red-600 transition text-sm">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div v-if="selectedClient.projects.length === 0" class="text-center text-gray-500 py-8">
+                                <i class="fas fa-folder-open text-3xl mb-2"></i>
+                                <p>No hay proyectos para este cliente</p>
+                                <button @click="addProject(selectedClient.id)" class="mt-2 text-purple-600 hover:text-purple-700 text-sm font-medium">
+                                    + Agregar primer proyecto
+                                </button>
+                            </div>
+                        </div>
                     </div>
+                </div>
+
+                <!-- Empty State -->
+                <div v-else class="bg-white rounded-lg shadow-sm border border-gray-100 p-12 text-center">
+                    <i class="fas fa-user-circle text-6xl text-gray-300 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-gray-600">Selecciona un cliente</h3>
+                    <p class="text-gray-500 mt-2">Haz clic en un cliente de la lista para ver sus detalles y proyectos</p>
                 </div>
             </div>
         </div>
 
         <!-- Modal -->
         <div v-if="showModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 fade-in" @click.self="closeModal">
-            <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
                 <div class="p-6">
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-2xl font-bold text-gray-800">
                             <i class="fas fa-user-circle text-purple-600 mr-2"></i>
                             {{ editingClient ? 'Editar Cliente' : 'Nuevo Cliente' }}
+                            <span v-if="editingProjectIndex !== null" class="text-sm font-normal text-gray-500 ml-2">
+                                - Editando proyecto #{{ editingProjectIndex + 1 }}
+                            </span>
                         </h2>
                         <button @click="closeModal" class="text-gray-400 hover:text-gray-600 transition text-2xl">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
 
-                    <!-- Client Form -->
                     <form @submit.prevent="saveClient">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
@@ -266,58 +333,68 @@
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Domicilio</label>
                                 <input v-model="form.address" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="Calle, número, colonia..." />
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Servicio *</label>
-                                <select v-model="form.serviceType" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                                    <option value="">Seleccionar...</option>
-                                    <option value="Foto">📸 Foto</option>
-                                    <option value="Video">🎥 Video</option>
-                                    <option value="PhotoBooth">📷 PhotoBooth</option>
-                                    <option value="Impresiones">🖨️ Impresiones</option>
-                                    <option value="Web">🌐 Web</option>
-                                    <option value="Redes Sociales">📱 Redes Sociales</option>
-                                    <option value="Otro">📌 Otro</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Precio ($)</label>
-                                <input v-model.number="form.price" type="number" step="0.01" min="0" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="0.00" @input="calculateTax" />
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Abono Inicial ($)</label>
-                                <input v-model.number="form.deposit" type="number" step="0.01" min="0" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="0.00" @input="calculateBalance" />
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    <span v-if="taxMode === 'auto'">Impuesto ({{ taxRate }}%)</span>
-                                    <span v-else>Impuesto ($)</span>
-                                </label>
-                                <div class="relative">
-                                    <input v-model.number="form.tax" type="number" step="0.01" min="0" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="0.00" :readonly="taxMode === 'auto'" :class="taxMode === 'auto' ? 'bg-gray-100' : ''" @input="calculateBalance" />
-                                    <span v-if="taxMode === 'auto'" class="absolute right-3 top-2 text-xs text-gray-400">automático</span>
+                        </div>
+
+                        <!-- Project Section -->
+                        <div class="mt-6 border-t border-gray-200 pt-6">
+                            <h3 class="font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                                <i class="fas fa-project-diagram text-purple-600"></i>
+                                {{ editingProjectIndex !== null ? 'Editar Proyecto' : 'Nuevo Proyecto' }}
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Servicio *</label>
+                                    <select v-model="form.serviceType" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                        <option value="">Seleccionar...</option>
+                                        <option value="Foto">📸 Foto</option>
+                                        <option value="Video">🎥 Video</option>
+                                        <option value="PhotoBooth">📷 PhotoBooth</option>
+                                        <option value="Impresiones">🖨️ Impresiones</option>
+                                        <option value="Web">🌐 Web</option>
+                                        <option value="Redes Sociales">📱 Redes Sociales</option>
+                                        <option value="Otro">📌 Otro</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Precio ($)</label>
+                                    <input v-model.number="form.price" type="number" step="0.01" min="0" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="0.00" @input="calculateTax" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Abono Inicial ($)</label>
+                                    <input v-model.number="form.deposit" type="number" step="0.01" min="0" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="0.00" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Tasa de Impuesto</label>
+                                    <select v-model="form.taxRate" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent" @change="calculateTax">
+                                        <option v-for="rate in taxRates" :key="rate.value" :value="rate.value">
+                                            {{ rate.label }}
+                                        </option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Impuesto ($)</label>
+                                    <div class="relative">
+                                        <input v-model.number="form.tax" type="number" step="0.01" min="0" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-100" placeholder="0.00" readonly />
+                                        <span class="absolute right-3 top-2 text-xs text-gray-400">automático</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                                    <select v-model="form.status" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                        <option value="active">🔄 En Proceso</option>
+                                        <option value="completed">✅ Terminado</option>
+                                    </select>
                                 </div>
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                                <select v-model="form.status" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                                    <option value="active">🔄 En Proceso</option>
-                                    <option value="completed">✅ Terminado</option>
-                                </select>
+                            <div class="mt-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Notas del Proyecto</label>
+                                <textarea v-model="form.projectNotes" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="Notas adicionales del proyecto..."></textarea>
                             </div>
                         </div>
-                        <div class="mt-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Notas del Proyecto</label>
-                            <textarea v-model="form.projectNotes" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="Notas adicionales del proyecto..."></textarea>
-                        </div>
-                        <div v-if="editingClient" class="mt-4 bg-purple-50 p-3 rounded-lg">
-                            <p class="text-sm text-purple-700">
-                                <i class="fas fa-info-circle mr-1"></i>
-                                Agregando nuevo proyecto a <strong>{{ editingClient.name }}</strong>
-                            </p>
-                        </div>
+
                         <div class="flex gap-3 mt-6">
                             <button type="submit" class="flex-1 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition font-medium">
-                                <i class="fas fa-save mr-2"></i> Guardar
+                                <i class="fas fa-save mr-2"></i> {{ editingProjectIndex !== null ? 'Actualizar Proyecto' : 'Guardar Cliente' }}
                             </button>
                             <button type="button" @click="closeModal" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition font-medium">
                                 Cancelar
@@ -335,10 +412,21 @@
             el: '#app',
             data: {
                 clients: [],
+                selectedClient: null,
+                searchQuery: '',
+                filteredClients: [],
                 showModal: false,
                 editingClient: null,
-                taxRate: 8.75,
-                taxMode: 'auto', // 'auto' or 'manual'
+                editingProjectIndex: null,
+                taxRates: [
+                    { label: '8.75% - Sacramento, CA', value: 8.75 },
+                    { label: '8.50% - Sacramento (otras zonas)', value: 8.50 },
+                    { label: '8.25% - California estándar', value: 8.25 },
+                    { label: '9.00% - Sacramento (ciudad)', value: 9.00 },
+                    { label: '9.50% - Alameda County', value: 9.50 },
+                    { label: '10.25% - Los Angeles County', value: 10.25 },
+                    { label: 'Personalizado', value: 0 }
+                ],
                 form: {
                     name: '',
                     phone: '',
@@ -347,6 +435,7 @@
                     serviceType: '',
                     price: 0,
                     deposit: 0,
+                    taxRate: 8.75,
                     tax: 0,
                     status: 'active',
                     projectNotes: ''
@@ -382,18 +471,34 @@
                 }
             },
             methods: {
-                calculateTax() {
-                    if (this.taxMode === 'auto' && this.form.price > 0) {
-                        this.form.tax = parseFloat((this.form.price * (this.taxRate / 100)).toFixed(2));
+                filterClients() {
+                    if (!this.searchQuery.trim()) {
+                        this.filteredClients = [...this.clients];
+                        return;
                     }
-                    this.calculateBalance();
+                    const query = this.searchQuery.toLowerCase().trim();
+                    this.filteredClients = this.clients.filter(client => {
+                        return client.name.toLowerCase().includes(query) ||
+                               (client.phone && client.phone.includes(query)) ||
+                               (client.email && client.email.toLowerCase().includes(query));
+                    });
                 },
-                calculateBalance() {
-                    // This will be used in save
+                selectClient(client) {
+                    this.selectedClient = client;
+                    // Close mobile menu if needed
                 },
-                openModal(client = null) {
+                calculateTax() {
+                    if (this.form.price > 0 && this.form.taxRate > 0) {
+                        this.form.tax = parseFloat((this.form.price * (this.form.taxRate / 100)).toFixed(2));
+                    } else {
+                        this.form.tax = 0;
+                    }
+                },
+                openModal(client = null, projectIndex = null) {
+                    this.editingClient = client;
+                    this.editingProjectIndex = projectIndex;
+
                     if (client) {
-                        this.editingClient = client;
                         this.form = {
                             name: client.name,
                             phone: client.phone || '',
@@ -402,14 +507,34 @@
                             serviceType: '',
                             price: 0,
                             deposit: 0,
+                            taxRate: 8.75,
                             tax: 0,
                             status: 'active',
                             projectNotes: ''
                         };
-                        // Reset tax calculation
-                        this.calculateTax();
+
+                        // If editing a specific project
+                        if (projectIndex !== null && client.projects[projectIndex]) {
+                            const project = client.projects[projectIndex];
+                            this.form.serviceType = project.serviceType;
+                            this.form.price = project.price;
+                            this.form.deposit = project.deposit;
+                            // Find tax rate from project
+                            const rate = this.taxRates.find(r => {
+                                const calculated = parseFloat((project.price * (r.value / 100)).toFixed(2));
+                                return calculated === project.tax && r.value > 0;
+                            });
+                            this.form.taxRate = rate ? rate.value : 8.75;
+                            this.form.tax = project.tax;
+                            this.form.status = project.status;
+                            this.form.projectNotes = project.notes || '';
+                            this.calculateTax();
+                        } else {
+                            this.calculateTax();
+                        }
                     } else {
                         this.editingClient = null;
+                        this.editingProjectIndex = null;
                         this.form = {
                             name: '',
                             phone: '',
@@ -418,6 +543,7 @@
                             serviceType: '',
                             price: 0,
                             deposit: 0,
+                            taxRate: 8.75,
                             tax: 0,
                             status: 'active',
                             projectNotes: ''
@@ -426,9 +552,15 @@
                     }
                     this.showModal = true;
                 },
+                editProject(index) {
+                    if (this.selectedClient) {
+                        this.openModal(this.selectedClient, index);
+                    }
+                },
                 closeModal() {
                     this.showModal = false;
                     this.editingClient = null;
+                    this.editingProjectIndex = null;
                 },
                 saveClient() {
                     if (!this.form.name || !this.form.serviceType) {
@@ -436,10 +568,8 @@
                         return;
                     }
 
-                    // Calculate tax if in auto mode
-                    if (this.taxMode === 'auto' && this.form.price > 0) {
-                        this.form.tax = parseFloat((this.form.price * (this.taxRate / 100)).toFixed(2));
-                    }
+                    // Calculate final tax
+                    this.calculateTax();
 
                     const project = {
                         serviceType: this.form.serviceType,
@@ -453,13 +583,21 @@
                     };
 
                     if (this.editingClient) {
-                        // Add project to existing client
-                        this.editingClient.projects.push(project);
+                        if (this.editingProjectIndex !== null) {
+                            // Update existing project
+                            this.editingClient.projects[this.editingProjectIndex] = project;
+                        } else {
+                            // Add new project to existing client
+                            this.editingClient.projects.push(project);
+                        }
                         // Update client info
                         this.editingClient.name = this.form.name;
                         this.editingClient.phone = this.form.phone;
                         this.editingClient.email = this.form.email;
                         this.editingClient.address = this.form.address;
+                        
+                        // Update selected client
+                        this.selectedClient = this.editingClient;
                     } else {
                         // New client with first project
                         const newClient = {
@@ -472,6 +610,8 @@
                             projects: [project]
                         };
                         this.clients.push(newClient);
+                        this.selectedClient = newClient;
+                        this.filterClients();
                     }
 
                     this.saveToLocalStorage();
@@ -488,22 +628,29 @@
                         const client = this.clients.find(c => c.id === clientId);
                         if (client) {
                             client.projects.splice(projectIndex, 1);
+                            if (this.selectedClient && this.selectedClient.id === clientId) {
+                                this.selectedClient = client;
+                            }
                             this.saveToLocalStorage();
+                            this.filterClients();
                         }
                     }
                 },
                 deleteClient(clientId) {
                     if (confirm('¿Eliminar este cliente y todos sus proyectos?')) {
                         this.clients = this.clients.filter(c => c.id !== clientId);
+                        if (this.selectedClient && this.selectedClient.id === clientId) {
+                            this.selectedClient = null;
+                        }
                         this.saveToLocalStorage();
+                        this.filterClients();
                     }
                 },
                 saveToLocalStorage() {
                     try {
                         localStorage.setItem('mejiaCrmData', JSON.stringify({
                             clients: this.clients,
-                            taxRate: this.taxRate,
-                            taxMode: this.taxMode
+                            taxRates: this.taxRates
                         }));
                     } catch (e) {
                         console.error('Error saving:', e);
@@ -515,17 +662,21 @@
                         if (data) {
                             const parsed = JSON.parse(data);
                             this.clients = parsed.clients || [];
-                            this.taxRate = parsed.taxRate || 8.75;
-                            this.taxMode = parsed.taxMode || 'auto';
+                            if (parsed.taxRates) this.taxRates = parsed.taxRates;
+                            this.filterClients();
+                            // Auto-select first client if exists
+                            if (this.clients.length > 0) {
+                                this.selectedClient = this.clients[0];
+                            }
                         } else {
-                            // Sample data for demo
+                            // Sample data with Sacramento tax
                             this.clients = [{
                                 id: 1,
                                 name: 'María García',
                                 phone: '+52 55 1234 5678',
                                 email: 'maria@example.com',
-                                address: 'Av. Reforma 123, CDMX',
-                                notes: 'Cliente recurrente',
+                                address: '123 Main St, Sacramento, CA 95814',
+                                notes: 'Cliente recurrente - Zona Sacramento',
                                 projects: [{
                                     serviceType: 'Foto',
                                     price: 1500,
@@ -533,7 +684,7 @@
                                     tax: 131.25,
                                     balance: 1131.25,
                                     status: 'active',
-                                    notes: 'Sesión de fotos en estudio',
+                                    notes: 'Sesión de fotos en estudio - 8.75% tax',
                                     date: '2026-01-15'
                                 }, {
                                     serviceType: 'Video',
@@ -542,7 +693,7 @@
                                     tax: 218.75,
                                     balance: 1718.75,
                                     status: 'completed',
-                                    notes: 'Video corporativo',
+                                    notes: 'Video corporativo - 8.75% tax',
                                     date: '2025-12-10'
                                 }]
                             }, {
@@ -550,8 +701,8 @@
                                 name: 'Carlos López',
                                 phone: '+52 55 8765 4321',
                                 email: 'carlos@example.com',
-                                address: 'Calle 5 de Mayo 45, Guadalajara',
-                                notes: 'Cliente nuevo',
+                                address: '456 Oak Ave, Sacramento, CA 95814',
+                                notes: 'Cliente nuevo - Sacramento',
                                 projects: [{
                                     serviceType: 'Web',
                                     price: 5000,
@@ -559,10 +710,14 @@
                                     tax: 437.50,
                                     balance: 3437.50,
                                     status: 'active',
-                                    notes: 'Desarrollo de sitio web',
+                                    notes: 'Desarrollo de sitio web - 8.75% tax',
                                     date: '2026-01-20'
                                 }]
                             }];
+                            this.filterClients();
+                            if (this.clients.length > 0) {
+                                this.selectedClient = this.clients[0];
+                            }
                             this.saveToLocalStorage();
                         }
                     } catch (e) {
@@ -572,8 +727,7 @@
                 exportData() {
                     const data = JSON.stringify({
                         clients: this.clients,
-                        taxRate: this.taxRate,
-                        taxMode: this.taxMode,
+                        taxRates: this.taxRates,
                         exportedAt: new Date().toISOString()
                     }, null, 2);
                     const blob = new Blob([data], { type: 'application/json' });
@@ -596,8 +750,11 @@
                             const data = JSON.parse(e.target.result);
                             if (data.clients && Array.isArray(data.clients)) {
                                 this.clients = data.clients;
-                                if (data.taxRate) this.taxRate = data.taxRate;
-                                if (data.taxMode) this.taxMode = data.taxMode;
+                                if (data.taxRates) this.taxRates = data.taxRates;
+                                this.filterClients();
+                                if (this.clients.length > 0) {
+                                    this.selectedClient = this.clients[0];
+                                }
                                 this.saveToLocalStorage();
                                 alert('✅ Datos importados correctamente.');
                             } else {
@@ -609,17 +766,6 @@
                     };
                     reader.readAsText(file);
                     event.target.value = '';
-                }
-            },
-            watch: {
-                taxRate() {
-                    this.saveToLocalStorage();
-                },
-                taxMode() {
-                    this.saveToLocalStorage();
-                    if (this.taxMode === 'auto' && this.form.price > 0) {
-                        this.calculateTax();
-                    }
                 }
             },
             mounted() {
